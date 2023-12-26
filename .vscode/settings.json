@@ -1,0 +1,11 @@
+{
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/.hg/store/**": true,
+        "**/dataset/**": true,
+        "**/output/**": true,
+        "**/cnnimageretrieval-pytorch/**": true
+    }
+}
