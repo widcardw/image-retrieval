@@ -1,0 +1,9 @@
+opencv-python
+numpy
+hnswlib==0.7.0
+pandas
+tqdm
+towhee
+streamlit
+torch
+torchvision
