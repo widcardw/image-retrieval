@@ -7,6 +7,8 @@ import pandas as pd
 import os
 import time
 from src.clip.constants import model_name
+import cv2
+from typing import Union, Callable
 
 p = (
     pipe.input('path')
@@ -16,7 +18,7 @@ p = (
         .output('embedding')
 )
 
-def subpage_clip(dataset_name: str, title = ''):
+def subpage_clip(dataset_name: str, title = '', calc_ap: Union[Callable, None] = None):
     img_map = pd.read_csv(f'output/dataset/{dataset_name}/output.csv')
     image_path = f'dataset/{dataset_name}/images/'
 
@@ -39,13 +41,24 @@ def subpage_clip(dataset_name: str, title = ''):
 
     if uploaded_file is not None:
         bytes_data = uploaded_file.getvalue()
-        # img_type = uploaded_file.type
+        file_name = uploaded_file.name
+        # 直接读取 bytes 为图像文件，会出现通道匹配错误，需要转换一下通道
+        st.header('Selected image')
+        st.image(
+            cv2.cvtColor(
+                cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR), 
+                cv2.COLOR_BGR2RGB
+            )
+        )
 
         if st.button('Query'):
             t = time.time()
             labels, distances = query_image(bytes_data)
             end_t = time.time()
             st.write(f'Searched in {(end_t - t):.3f} s')
+            if calc_ap is not None:
+                ap = calc_ap(img_map.loc[img_map['Index'].isin(labels), 'File'], file_name)
+                st.write(f'ap = {ap}')
             column_num = 2
             cols = st.columns(column_num)
             for (idx, (label, dist)) in enumerate(zip(labels, distances)):
