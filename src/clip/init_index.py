@@ -6,21 +6,22 @@ import time
 # import csv
 import pandas as pd
 from tqdm import tqdm
+from constants import model_name
 
-model_name = '../../vector_database/project/clip-vit-base-patch32'
 
 def init_index(dataset_folder: str, model_name = model_name):
     '''
     Images of the dataset should be put in {dataset_folder}/images
     If {model_name} is not provided, use `clip-vit-base-path32` by default
 
-    However, we lose connection with huggingface, so I should download it and use relative path.
+    However, we lose connection with huggingface, so I should download the model and turn to relative path.
     '''
     folder_path = os.path.join(dataset_folder, 'images')
     if not os.path.exists(folder_path):
         raise Exception(f'Images should be put in {folder_path}')
     print("Creating pipeline")
     print('Using model', model_name)
+    # Build pipeline with towhee
     p = (
         pipe.input('path')
         .map('path', 'img', ops.image_decode.cv2())
@@ -45,12 +46,14 @@ def init_index(dataset_folder: str, model_name = model_name):
     end_time = time.time()
     print(f"Dataset created in: {end_time - start_time}s")
 
+    # The output dim of CLIP is 512
     dim = 512
     num_elements = i
     ids = np.arange(num_elements)
 
     print("Creating index")
     start_time = time.time()
+    # Build hnsw index with euclidean distance
     p1 = hnswlib.Index(space = 'l2', dim = dim)
     print("Init index")
     p1.init_index(max_elements = num_elements, ef_construction = 200, M = 16)
@@ -59,11 +62,11 @@ def init_index(dataset_folder: str, model_name = model_name):
     end_time = time.time()
     print(f"Index created in: {end_time - start_time}s")
 
-    index_file_path = os.path.join(output_path, "17126_pic.bin")
-    indexed_image_list_file_path = os.path.join(output_path, 'output.csv')
+    index_file_path = os.path.join(output_path, "clip.bin")
+    indexed_image_list_file_path = os.path.join(output_path, 'clip.csv')
     print('Save Index at', index_file_path)
     p1.save_index(index_file_path)
 
+    # Save the map from image id to image path
     out_df = pd.DataFrame(enumerate(all_images), columns=['Index', 'File'])
-
     out_df.to_csv(indexed_image_list_file_path)

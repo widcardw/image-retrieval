@@ -5,7 +5,7 @@ def calc_holiday_ap(search_results: List[str], input_image: str):
     p = 0
     cnt = 0
     for i, it in enumerate(search_results):
-        if it[:4] == cls:
+        if it.startswith(cls):
             cnt += 1
             p += cnt / (i + 1)
 

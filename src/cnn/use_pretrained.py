@@ -6,7 +6,6 @@ import numpy as np
 
 def get_image_feature(img: Image):
     model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
-    model = torch.nn.Sequential(*list(model.children())[:-1])
     transform = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
@@ -82,7 +81,6 @@ def save_features(dataset_path: str):
     dataset = ImageDataset(image_paths, transform=transform)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=False)
     model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
-    model = torch.nn.Sequential(*list(model.children())[:-1])
     model = model.eval()
     if torch.cuda.is_available():
         model = model.to('cuda')

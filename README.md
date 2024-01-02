@@ -49,7 +49,7 @@ python src/clip/run_init_index.py --dataset dataset/oxbuild
 #### SIFT
 
 ```sh
-python src/sift/run_init_index.py --dataset dataset/oxbuild
+python src/sift/run_init_index.py --dataset dataset/oxbuild --n_clusters 100
 ```
 
 索引构建时间较为漫长，打包中将会包含该索引的二进制文件

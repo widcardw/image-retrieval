@@ -1,2 +1,3 @@
-kp_num = 16
-dim = kp_num * 128
+kp_num = 128
+scale = 1
+dim = int(kp_num * 128 * scale)

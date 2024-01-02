@@ -6,30 +6,47 @@ import pandas as pd
 import os
 import time
 import cv2
+import pickle
 
-from src.sift.constants import kp_num, dim
-from typing import Union, Callable
+from src.sift.constants import kp_num
+from typing import Union, Callable, List
+from sklearn.cluster import KMeans
 
 sift = cv2.SIFT_create(kp_num)
 
-def subpage_sift(dataset_name: str, title = '', calc_ap: Union[Callable, None] = None):
-    img_map = pd.read_csv(f'output/dataset/{dataset_name}/output.csv')
-    image_path = f'dataset/{dataset_name}/images/'
+def calc_map(ap: List[float]):
+    if len(ap) == 0:
+        return 0.
+    return sum(ap) / len(ap)
 
-    p1 = hnswlib.Index(space='l2', dim=dim)
+aps = []
+
+def subpage_sift(dataset_name: str, title = '', calc_ap: Union[Callable, None] = None):
+    img_map = pd.read_csv(f'output/dataset/{dataset_name}/sift.csv')
+    image_path = f'dataset/{dataset_name}/images/'
+    with open(f'output/dataset/{dataset_name}/sift-kmeans.pkl', 'rb') as fin:
+        kmeans: KMeans = pickle.load(fin)
+
+    p1 = hnswlib.Index(space='l2', dim=kp_num)
     p1.load_index(f'output/dataset/{dataset_name}/sift.bin')
     p1.set_ef(20)
 
     st.title(title if title.strip() != '' else dataset_name)
     uploaded_file = st.file_uploader('Choose an image', type=['jpg', 'jpeg', 'png'], accept_multiple_files=False)
 
-    k = st.slider('Result count', min_value=1, max_value=15, step=1, value=5)
+    k = st.slider('Result count', min_value=1, max_value=15, step=1, value=3)
 
     def query_image(img_bytes: bytes):
         img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
-        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-        kp, des = sift.detectAndCompute(gray, None)
-        feature: np.ndarray = des.flatten()
+        kp, des = sift.detectAndCompute(img, None)
+        normalized_array = np.zeros((kp_num, 128))
+        if kp is None or des is None:
+            return [], []
+        if des.shape[0] >= kp_num:
+            normalized_array = des[:kp_num]
+        else:
+            normalized_array[:des.shape[0]] = des
+        feature = kmeans.predict(np.array(normalized_array, dtype=np.double))
         labels, distances = p1.knn_query(feature, k)
         return labels.squeeze(), distances.squeeze()
     
@@ -51,8 +68,13 @@ def subpage_sift(dataset_name: str, title = '', calc_ap: Union[Callable, None] =
             end_t = time.time()
             st.write(f'Searched in {(end_t - t):.3f} s')
             if calc_ap is not None:
-                ap = calc_ap(img_map.loc[img_map['Index'].isin(labels), 'File'], file_name)
-                st.write(f'ap = {ap}')
+                search_results = []
+                for label in labels:
+                    search_results.append(img_map.loc[label, 'File'])
+                ap = calc_ap(search_results, file_name)
+                aps.append(ap)
+                st.write(f'mAP = {calc_map(aps)}')
+                st.write(f'AP = {ap}')
             column_num = 2
             cols = st.columns(column_num)
             for (idx, (label, dist)) in enumerate(zip(labels, distances)):

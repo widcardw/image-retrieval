@@ -1,3 +1,4 @@
 dataset/
 cnnimageretrieval-pytorch/
 **/__pycache__/
+models/

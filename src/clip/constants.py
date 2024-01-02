@@ -1,1 +1,1 @@
-model_name = '../../vector_database/project/clip-vit-base-patch32'
+model_name = './models/clip-vit-base-patch32'
